@@ -8,12 +8,36 @@ output:
 
 ```{r setup, include=FALSE}
 library(flexdashboard)
+library(readr)
+library(dplyr)
+library(janitor)
+
+# Useful codes 
+leer_happiness <- function(file, year) {
+  
+  df <- read_csv(file) |>
+    clean_names()
+  
+  # Renombrar country_or_region → country SOLO si existe
+  if ("country_or_region" %in% names(df)) {
+    df <- df |> rename(country = country_or_region)
+  }
+  df <- df |> mutate(year = year)
+  df
+}
+
+h15 <- leer_happiness("data/2015.csv", 2015)
+h16 <- leer_happiness("data/2016.csv", 2016)
+h17 <- leer_happiness("data/2017.csv", 2017)
+h18 <- leer_happiness("data/2018.csv", 2018)
+h19 <- leer_happiness("data/2019.csv", 2019)
+
 ```
 
 Column {data-width=650}
 -----------------------------------------------------------------------
 
-### Chart A
+### Columna de Lázaro Hetero
 
 ```{r}
 
@@ -22,13 +46,13 @@ Column {data-width=650}
 Column {data-width=350}
 -----------------------------------------------------------------------
 
-### Chart B
+### Lázaro Curioso
 
 ```{r}
 
 ```
 
-### Chart C
+### Hendrix Curioso
 
 ```{r}
 
