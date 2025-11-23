@@ -13,6 +13,12 @@ library(dplyr)
 library(janitor)
 
 # Useful codes 
+seleccionar_columnas<-function(Datos){
+  Datos<-Datos%>%
+    select(country,region,rank,happiness_score,gdp_per_capita,social_support,healthy_life_expectancy,
+           freedom,corruption,generosity,dystopia_residual,year)
+}
+
 leer_happiness <- function(file, year) {
   
   df <- read_csv(file) |>
@@ -26,13 +32,190 @@ leer_happiness <- function(file, year) {
   df
 }
 
+Pais_region <- h15 %>%
+  select(country, region) %>%
+  distinct(country, .keep_all = TRUE)
+
+#Creamos una función para agregar la region a los faltantes
+
+merge_region <- function(df, diccionario) {
+  
+  # Hacer left join con merge
+  temp <- merge(df, diccionario, by = "country", all.x = TRUE, suffixes = c(".x", ".y"))
+  
+  # Si existe region.x y region.y:
+  if ("region.x" %in% names(temp) && "region.y" %in% names(temp)) {
+    
+    # Conservar region.x, eliminar region.y
+    temp <- temp |>
+      rename(region = region.x) |>
+      select(-region.y)
+    
+  } else if ("region.y" %in% names(temp)) {
+    # Caso raro: df no tenía region, diccionario sí
+    temp <- temp |>
+      rename(region = region.y)
+  } else if ("region.x" %in% names(temp)) {
+    # Caso df tiene región y el diccionario no aporta nada nuevo
+    temp <- temp |>
+      rename(region = region.x)
+  }
+  
+  temp
+}
+convert_auto_numeric <- function(df) {
+  
+  df %>%
+    mutate(across(
+      .cols = -c(country, region),   # NO tocar country ni region
+      .fns  = ~ {
+        # Primero reemplazar "N/A" u otros marcadores de missing
+        x <- ifelse(. %in% c("N/A", "NA", "", "NULL"), NA, .)
+        
+        # Intentar convertir la columna completa
+        type.convert(as.character(x), as.is = TRUE)
+      }
+    ))
+}
+homologar_nombres <- function(df) {
+  
+  rn <- names(df)   # nombres existentes
+  
+  # lista de equivalencias: viejo → nuevo
+  equivalencias <- list(
+    happiness_rank              = "rank",
+    overall_rank                = "rank",
+    happiness_score             = "happiness_score",
+    score                       = "happiness_score",
+    economy_gdp_per_capita      = "gdp_per_capita",
+    gdp_per_capita              = "gdp_per_capita",
+    family                      = "social_support",
+    social_support              = "social_support",
+    health_life_expectancy      = "healthy_life_expectancy",
+    healthy_life_expectancy     = "healthy_life_expectancy",
+    freedom                     = "freedom",
+    freedom_to_make_life_choices = "freedom",
+    trust_government_corruption = "corruption",
+    perceptions_of_corruption   = "corruption",
+    lower_confidence_interval   = "se_lower",
+    upper_confidence_interval   = "se_upper",
+    whisker_high                = "whisker_high",
+    whisker_low                 = "whisker_low"
+  )
+  
+  # filtrar equivalencias solo para columnas que existan
+  equivalencias_validas <- equivalencias[names(equivalencias) %in% rn]
+  
+  # renombrar dinámicamente
+  df <- df %>%
+    rename(!!!setNames(names(equivalencias_validas), unlist(equivalencias_validas)))
+  
+  df
+}
+
 h15 <- leer_happiness("data/2015.csv", 2015)
 h16 <- leer_happiness("data/2016.csv", 2016)
 h17 <- leer_happiness("data/2017.csv", 2017)
 h18 <- leer_happiness("data/2018.csv", 2018)
 h19 <- leer_happiness("data/2019.csv", 2019)
 
+h15_m <- merge_region(h15, Pais_region)
+h16_m <- merge_region(h16, Pais_region)
+h17_m <- merge_region(h17, Pais_region)
+h18_m <- merge_region(h18, Pais_region)
+h19_m <- merge_region(h19, Pais_region)
+
+h15_m <- convert_auto_numeric(h15_m)
+h16_m <- convert_auto_numeric(h16_m)
+h17_m <- convert_auto_numeric(h17_m)
+h18_m <- convert_auto_numeric(h18_m)
+h19_m <- convert_auto_numeric(h19_m)
+
+h15_mh <- homologar_nombres(h15_m)
+h16_mh <- homologar_nombres(h16_m)
+h17_mh <- homologar_nombres(h17_m)
+h18_mh <- homologar_nombres(h18_m)
+h19_mh <- homologar_nombres(h19_m)
+
+## Missin values section
+
+#Vemos en en 2018 y 2019 no tenemos distopía residual, por lo que creamos esa 
+# columna con puros 0, después la arreglamos
+h18_mh<-h18_mh%>%
+  mutate(dystopia_residual=0)
+
+h19_mh<-h19_mh%>%
+  mutate(dystopia_residual=0)
+
+h15_mh <- seleccionar_columnas(h15_mh)
+h16_mh <- seleccionar_columnas(h16_mh)
+h17_mh <- seleccionar_columnas(h17_mh)
+h18_mh <- seleccionar_columnas(h18_mh)
+h19_mh <- seleccionar_columnas(h19_mh)
+
+
+#Creamos la base completa
+
+Data<-rbind(h15_mh,
+            h16_mh,
+            h17_mh,
+            h18_mh,
+            h19_mh)
+
+# Imputación de datos
+#Vemos que existe el caso en el que algunos años no se tiene info sobre algunas
+# variables, por lo tanto lo que haremos es imputar datos en esos NA con el
+# promedio histórico del país en específico
+imputar_na_promedio_pais <- function(Datos,
+                                     vars_imputar = c("gdp_per_capita",
+                                                      "social_support",
+                                                      "healthy_life_expectancy",
+                                                      "freedom",
+                                                      "corruption",
+                                                      "generosity",
+                                                      "dystopia_residual")) {
+  Datos %>%
+    group_by(country) %>%
+    mutate(
+      across(
+        .cols = all_of(vars_imputar),
+        .fns  = ~ {
+          prom_pais <- mean(., na.rm = TRUE)
+          ifelse(is.na(.), prom_pais, .)
+        }
+      )
+    ) %>%
+    ungroup()
+}
+
+Data<-imputar_na_promedio_pais(Data)
+
+# Ahora creamos la dystopia para aquellos datos para los años que no tenemos
+# ese dato
+
+recalcular_dystopia <- function(df) {
+  df %>%
+    mutate(
+      dystopia_residual = ifelse(
+        dystopia_residual == 0 | is.na(dystopia_residual),
+        happiness_score - (
+          gdp_per_capita +
+            social_support +
+            healthy_life_expectancy +
+            freedom +
+            generosity +
+            corruption
+        ),
+        dystopia_residual
+      )
+    )
+}
+
+Data <- recalcular_dystopia(Data)
+
 ```
+
+
 
 Column {data-width=650}
 -----------------------------------------------------------------------
