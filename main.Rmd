@@ -32,9 +32,6 @@ leer_happiness <- function(file, year) {
   df
 }
 
-Pais_region <- h15 %>%
-  select(country, region) %>%
-  distinct(country, .keep_all = TRUE)
 
 #Creamos una función para agregar la region a los faltantes
 
@@ -119,6 +116,11 @@ h17 <- leer_happiness("data/2017.csv", 2017)
 h18 <- leer_happiness("data/2018.csv", 2018)
 h19 <- leer_happiness("data/2019.csv", 2019)
 
+Pais_region <- h15 %>%
+  select(country, region) %>%
+  distinct(country, .keep_all = TRUE)
+
+
 h15_m <- merge_region(h15, Pais_region)
 h16_m <- merge_region(h16, Pais_region)
 h17_m <- merge_region(h17, Pais_region)
@@ -136,6 +138,8 @@ h16_mh <- homologar_nombres(h16_m)
 h17_mh <- homologar_nombres(h17_m)
 h18_mh <- homologar_nombres(h18_m)
 h19_mh <- homologar_nombres(h19_m)
+
+
 
 ## Missin values section
 
