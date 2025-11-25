@@ -274,15 +274,15 @@ ui <- navbarPage(
         column(6, h4("Resumen"), verbatimTextOutput("cv_summary"))
       ),
       br(),
-      h4("Coeficientes ??.1se"), tableOutput("coef_1se_tbl"),
-      h4("Coeficientes ??.min"), tableOutput("coef_min_tbl"),
+      h4("Coeficientes (1)"), tableOutput("coef_1se_tbl"),
+      h4("Coeficientes (2)"), tableOutput("coef_min_tbl"),
       br(),
       h3("Conclusiones del modelo LASSO"),
-      p("El modelo LASSO obtiene un error de validaci�n cruzada cercano a 0.37, lo que indica 
+      p("El modelo LASSO obtiene un error de validación cruzada cercano a 0.37, lo que indica 
        que, pese a la variabilidad propia de datos sociales, logra capturar de manera razonable 
        los determinantes del Happiness Score."),
       
-      p("En ambos ajustes (??.min y ??.1se), los predictores más relevantes son el ingreso (gdp_log), 
+      p("En ambos ajustes ((1) y (2)), los predictores más relevantes son el ingreso (gdp_log), 
        la libertad, la ausencia de corrupción, la expectativa de vida saludable y el apoyo social, 
        todos con coeficientes positivos. Es decir, mejores condiciones materiales, instituciones 
        más sólidas y redes de apoyo más fuertes se asocian sistemáticamente con mayor felicidad."),
