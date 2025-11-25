@@ -18,7 +18,7 @@ server <- function(input, output, session) {
       geom_col(width=.7, alpha=.9) +
       geom_text(aes(label=Felicidad_promedio), hjust=-.1, size=4) +
       coord_flip() + expand_limits(y = max(df$Felicidad_promedio)+.3) +
-      labs(title="Top 10 países más felices (promedio 2015–2019)", x=NULL, y="Happiness Score", fill="Región") +
+      labs(title="Top 10 pa�ses m�s felices (promedio 2015 - 2019)", x=NULL, y="Happiness Score", fill="Regi�n") +
       theme_minimal(base_size=13) + theme(legend.position="bottom", panel.grid.major.y=element_blank())
   })
   
@@ -104,7 +104,7 @@ server <- function(input, output, session) {
     ggplot(sc, aes(PC1, PC2, color = region)) +
       geom_point(alpha = .9) +
       theme_minimal() +
-      labs(title = paste("PC1 vs PC2 —", input$pca_year), x = "PC1", y = "PC2", color = "Región")
+      labs(title = paste("PC1 vs PC2 — 2019", input$pca_year), x = "PC1", y = "PC2", color = "Región")
   })
   output$pca_loadings_tbl <- renderTable({ round(pca_fit()$rotation, 3) }, rownames = TRUE)
   
